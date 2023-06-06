@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  name            String?
+  email           String?   @unique
+  emailVerified   DateTime?
+  image           String?
+  hashedPassword  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  favoriteIds     String[]  @db.ObjectId
+  tenders         Tender[]  @relation("CreatedByUser") // One-to-many relationship with Tender
+  bids            Bid[]     @relation("BidderUser")    // One-to-many relationship with Bid
+  accounts        Account[]   @relation("UserAccount")   
+}
+
+model Account {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.String
+  access_token       String?  @db.String
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.String
+  session_state      String?
+
+  user               User     @relation("UserAccount",fields: [userId], references: [id], onDelete: Cascade)
+  userId             String   @db.ObjectId
+
+  @@unique([provider, providerAccountId])
+}
+
+
+// Tender model
+model Tender {
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  user          User    @relation("CreatedByUser",fields: [userId], references: [id] ,onDelete: Cascade)
+  userId        String  @db.ObjectId
+  category    String
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  bids         Bid[]     @relation("TenderBids")   // One-to-many relationship with Bid
+}
+
+// Bid model
+model Bid {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  tender       Tender    @relation("TenderBids", fields: [tenderId], references: [id])
+  tenderId     String   @db.ObjectId
+  user          User    @relation("BidderUser",fields: [userId], references: [id] ,onDelete: Cascade)
+  userId        String @db.ObjectId
+  amount       Float
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
